@@ -9,12 +9,14 @@ from torchvision import datasets, models, transforms
 import time
 import os
 import copy
-
+import PIL
 
 # Data augmentation and normalization for training
 # Just normalization for validation
 data_transforms = {
     'train': transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(90, resample=PIL.Image.NEAREST,expand=False, center=None),
         transforms.Resize(256),
         transforms.CenterCrop(224),
         transforms.ToTensor(),
@@ -34,7 +36,7 @@ data_transforms = {
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ]),
 }
-data_dir = '/root/datasets/food11_dataset'
+data_dir = '/opt/nvme/food-11'
 
 '''
 return: dataloaders

@@ -23,11 +23,11 @@ import data_loader, model_handler
 import model.resnet as resnet
 import model.resnet_cifar as resnet_cifar
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 parser = argparse.ArgumentParser()
 # parser.add_argument('--data_dir', default='data/64x64_SIGNS', help="Directory for the dataset")
-parser.add_argument('--model_dir', default='experiments/resnet18/test',
+parser.add_argument('--model_dir', default='./',
                     help="Directory containing params.json")
 parser.add_argument('--restore_file', default=None,
                     help="Optional, name of the file in --model_dir \
@@ -38,20 +38,20 @@ def train_model(dataloaders, model, criterion, optimizer, scheduler, num_epochs=
 
     best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
-    
+
     for epoch in range(num_epochs):
         logging.info('Epoch {}/{}'.format(epoch, num_epochs - 1))
         logging.info('-' * 10)
 
         # Each epoch has a training and validation phase
         # training phase
-        scheduler.step()
         model.train()  # Set model to training mode
-        
+
+        epoch_acc = 0
+        epoch_loss = 0
         running_loss = 0.0
         running_corrects = 0
         running_total = 0
-            
         # Iterate over data.
         # tqdm progress bar
         with tqdm(total=len(dataloaders['train'])) as t:
@@ -77,21 +77,22 @@ def train_model(dataloaders, model, criterion, optimizer, scheduler, num_epochs=
                         loss = criterion(outputs, labels, soft_targets)
                     loss.backward()
                     optimizer.step()
+                    scheduler.step()
 
                     # statistics
                     running_loss += loss.item() * inputs.size(0)
                     running_corrects += torch.sum(preds == labels.data)
                     running_total += inputs.size(0)
                 t.update()
-                
+
             epoch_loss = running_loss / running_total
             epoch_acc = running_corrects.double() / running_total
 
-            logging.info('Train Loss: {:.4f} Acc: {:.4f}'.format(epoch_loss, epoch_acc))
 
         # validate
         val_acc = evaluate(dataloaders['validation'], model)
-        logging.info('Val Acc: {:.4f}'.format(val_acc))		
+        logging.info('Train Loss: {:.4f} Acc: {:.4f}'.format(epoch_loss, epoch_acc))
+        logging.info('Val Acc: {:.4f}'.format(val_acc))
         # deep copy the model
         if val_acc > best_acc:
             logging.info('Found new best accuracy')
